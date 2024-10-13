@@ -12,18 +12,33 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.camera.core.Preview
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.allio.ui.theme.AllioTheme
+import androidx.camera.core.*
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
+import java.util.concurrent.ExecutorService
 
 
 class MainActivity : ComponentActivity() {
+    private lateinit var previewView: PreviewView
+    private lateinit var cameraExecutor: ExecutorService
+    private var isPermissionGranted = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        CheckPermission()
+        setContentView(R.layout.activity_main)
+        previewView = findViewById(R.id.previewView)
+
+        checkPermission()
+
+        if (isPermissionGranted) {
+            startCamera()
+        }
     }
-    private fun CheckPermission() {
+    private fun checkPermission() {
         val permissionCheck = ContextCompat.checkSelfPermission(
             this, Manifest.permission.CAMERA
         )
@@ -38,22 +53,36 @@ class MainActivity : ComponentActivity() {
                 Toast.LENGTH_SHORT
             ).show()
             return
+        } else {
+            isPermissionGranted = true
         }
     }
-}
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+    private fun startCamera() {
+        print("start camera")
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    AllioTheme {
-        Greeting("Android")
+        cameraProviderFuture.addListener({
+            val cameraProvider = cameraProviderFuture.get()
+            val preview = Preview.Builder().build().also {
+                it.setSurfaceProvider(previewView.surfaceProvider)
+            }
+
+            // 카메라 선택 (뒤쪽 카메라)
+            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
+            // 카메라 바인딩
+            try {
+                cameraProvider.unbindAll() // 이전 바인딩 해제
+                cameraProvider.bindToLifecycle(this, cameraSelector, preview)
+            } catch (exc: Exception) {
+                Toast.makeText(this, "카메라 시작 실패: ${exc.message}", Toast.LENGTH_SHORT).show()
+            }
+        }, ContextCompat.getMainExecutor(this))
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        cameraExecutor.shutdown() // Executor 종료
     }
 }
