@@ -158,19 +158,27 @@ class MainActivity : ComponentActivity() {
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 
-    fun bitmapToBase64(bitmap: Bitmap): String {
-        // ByteArrayOutputStream을 사용하여 Bitmap을 ByteArray로 변환
-        val byteArrayOutputStream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream) // JPEG 형식으로 압축
-        val byteArray = byteArrayOutputStream.toByteArray()
+    fun compressBitmapToBase64(bitmap: Bitmap, maxFileSize: Int = 4 * 1024 * 1024): String {
+        val outputStream = ByteArrayOutputStream()
 
-        // ByteArray를 Base64 문자열로 인코딩
-        return Base64.encodeToString(byteArray, Base64.DEFAULT)
+        var compressQuality = 100  // 시작 압축률 (100% = 압축 안 함)
+        var byteArray: ByteArray
+
+        // 이미지를 압축하면서 크기를 줄임
+        do {
+            outputStream.reset()  // 스트림을 초기화하여 이전 압축 데이터를 삭제
+            bitmap.compress(Bitmap.CompressFormat.JPEG, compressQuality, outputStream)
+            byteArray = outputStream.toByteArray()
+            compressQuality -= 5  // 압축률을 점차 높임 (5%씩 감소)
+        } while (byteArray.size > maxFileSize && compressQuality > 0)
+
+        // 압축된 이미지를 Base64 문자열로 변환
+        return Base64.encodeToString(byteArray, Base64.NO_WRAP)
     }
 
     fun callApi(bitmap: Bitmap) {
         // Bitmap을 Base64로 인코딩
-        val base64Image = bitmapToBase64(bitmap)
+        val base64Image = compressBitmapToBase64(bitmap)
 
         // 요청 데이터 생성
         val uploadRequest = ClaudeRequest(image = base64Image)
