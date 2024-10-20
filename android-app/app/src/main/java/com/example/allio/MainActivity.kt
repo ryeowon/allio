@@ -1,6 +1,7 @@
 package com.example.allio
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.os.Bundle
@@ -25,9 +26,12 @@ import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import android.util.Base64
 import android.view.GestureDetector
+import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.TextView
+import com.google.gson.Gson
 import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Callback
@@ -39,7 +43,7 @@ import kotlin.math.abs
 
 class MainActivity : ComponentActivity() {
     private lateinit var previewView: PreviewView
-    private lateinit var imageView: ImageView
+    private lateinit var resultTextView: TextView
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var fullScreenContainer: FrameLayout
     private var isPermissionGranted = false
@@ -50,12 +54,17 @@ class MainActivity : ComponentActivity() {
         val image: String
     )
 
+    data class ResponseData(
+        val message: String
+    )
+
     // API 인터페이스 정의
     interface ApiService {
         @POST("claude") // 엔드포인트 정의
         fun getDescription(@Body request: ClaudeRequest): Call<ResponseBody> // 응답으로 ResponseBody를 받을 예정
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -73,6 +82,8 @@ class MainActivity : ComponentActivity() {
 
             val fullScreenView = layoutInflater.inflate(R.layout.search_result, null)
             fullScreenContainer.addView(fullScreenView)
+
+            resultTextView = fullScreenView.findViewById(R.id.resultTextView)
 
             // 오른쪽으로 스와이프하면 레이아웃 닫기
             val gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
@@ -242,6 +253,10 @@ class MainActivity : ComponentActivity() {
                     // 응답 처리 (UI 업데이트 등)
                     if (responseData != null) {
                         Log.d("callApi", responseData)
+
+                        val gson = Gson()
+                        val responseData = gson.fromJson(responseData, ResponseData::class.java)
+                        resultTextView.text = responseData.message
 
                         openSearchResult()
                     }
