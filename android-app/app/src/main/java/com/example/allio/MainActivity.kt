@@ -24,20 +24,24 @@ import android.widget.ImageView
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import android.util.Base64
+import android.view.GestureDetector
+import android.view.MotionEvent
+import android.view.View
+import android.widget.FrameLayout
 import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.POST
+import kotlin.math.abs
 
 
 class MainActivity : ComponentActivity() {
     private lateinit var previewView: PreviewView
     private lateinit var imageView: ImageView
     private lateinit var cameraExecutor: ExecutorService
+    private lateinit var fullScreenContainer: FrameLayout
     private var isPermissionGranted = false
     private var imageCapture: ImageCapture? = null
     private var capturedImage: Bitmap? = null
@@ -56,13 +60,63 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         previewView = findViewById(R.id.previewView)
-        imageView = findViewById(R.id.imageView)
         var captureButton = findViewById<Button>(R.id.captureButton)
+        fullScreenContainer = findViewById(R.id.full_screen_container)
+
+        fullScreenContainer.elevation = 10f
 
         checkPermission()
 
         if (isPermissionGranted) {
             startCamera()
+            Log.d("StartCamera", "start")
+
+            val fullScreenView = layoutInflater.inflate(R.layout.search_result, null)
+            fullScreenContainer.addView(fullScreenView)
+
+            // 오른쪽으로 스와이프하면 레이아웃 닫기
+            val gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+                override fun onFling(
+                    e1: MotionEvent?,
+                    p1: MotionEvent,
+                    velocityX: Float,
+                    velocityY: Float
+                ): Boolean {
+                    if (e1 != null) {
+                        val deltaX = p1.x - e1.x // 수평 방향의 거리
+
+                        // 오른쪽 스와이프
+                        if (deltaX > 100 && abs(velocityX) > 100) {
+                            Log.d("GestureDetector", "Swiped Right")
+                            closeSearchResult()
+                            return true
+                        }
+                        return false
+                    }
+                    return false
+                }
+            })
+
+            fullScreenContainer.setOnTouchListener { _, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        Log.d("setOnTouchListener", "ACTION_DOWN")
+                        // 클릭이 감지되면 performClick 호출
+                        fullScreenContainer.performClick()
+                    }
+                    MotionEvent.ACTION_MOVE -> Log.d("setOnTouchListener", "ACTION_MOVE")
+                    MotionEvent.ACTION_UP -> {
+                        Log.d("setOnTouchListener", "ACTION_UP")
+                        // ACTION_UP에서 performClick 호출
+                        fullScreenContainer.performClick()
+                    }
+                    MotionEvent.ACTION_CANCEL -> Log.d("setOnTouchListener", "ACTION_CANCEL")
+                }
+
+                // GestureDetector의 onTouchEvent 호출
+                gestureDetector.onTouchEvent(event)
+                true
+            }
 
             captureButton.setOnClickListener {
                 takePhoto()
@@ -128,9 +182,6 @@ class MainActivity : ComponentActivity() {
                 val rotatedBitmap = rotateBitmap(bitmap, rotationDegrees)
                 capturedImage = rotatedBitmap
 
-                // 이미지 표시
-                imageView.setImageBitmap(capturedImage)
-
                 // 이미지 전송
                 callApi(rotatedBitmap)
 
@@ -191,6 +242,8 @@ class MainActivity : ComponentActivity() {
                     // 응답 처리 (UI 업데이트 등)
                     if (responseData != null) {
                         Log.d("callApi", responseData)
+
+                        openSearchResult()
                     }
                 } else {
                     // 오류 처리
@@ -203,6 +256,14 @@ class MainActivity : ComponentActivity() {
                 // 실패 처리 (UI 업데이트 등)
             }
         })
+    }
+
+    private fun openSearchResult() {
+        fullScreenContainer.visibility = View.VISIBLE
+    }
+
+    private fun closeSearchResult() {
+        fullScreenContainer.visibility = View.GONE
     }
 
     override fun onDestroy() {
