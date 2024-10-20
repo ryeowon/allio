@@ -27,7 +27,11 @@
         android:id="@+id/captureButton"
         android:layout_width="match_parent"
         android:layout_height="90dp"
+        android:backgroundTint="#0000FF"
         android:text="촬영"
+        android:textColor="#FFFFFF"
+        android:textSize="24sp"
+        android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
