@@ -10,7 +10,7 @@ default_required_info = "제조사 소비기한 영양정보 조리법 섭취방
 
 def get_document(product_name, query):
     search_query = query if query != "" else "정보"
-    serper_response = search(product_name + search_query)
+    serper_response = search(product_name + " " + search_query)
     if query != "" and serper_response.get("answerBox"):
         return serper_response["answerBox"]["snippet"]
     
@@ -31,9 +31,12 @@ def get_document(product_name, query):
         })
     embed_query = query if query != "" else default_required_info
 
-    best_document_index = get_best_document_index(product_name + embed_query, [item['text'] for item in title_and_snippets])
+    best_document_index = get_best_document_index(product_name + " " + embed_query, [item['text'] for item in title_and_snippets])
     
     best_document_link = title_and_snippets[best_document_index]['link']
+
+    if "알레르기" in query or "보관" in query:
+        return title_and_snippets[best_document_index]['text']
     return scrape_website(best_document_link)
 
 def scrape_website(url):
@@ -48,10 +51,13 @@ def scrape_website(url):
     }
 
     response = requests.request("POST", api_url, headers=headers, data=payload)
+    print("------scrape_website------")
+    print(response)
     response_json = json.loads(response.text)
     return response_json.get('text', '')
 
 def search(query):
+    print("search by" + query)
     url = "https://google.serper.dev/search"
     payload = json.dumps({
       "q": query,
