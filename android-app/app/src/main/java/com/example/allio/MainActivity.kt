@@ -21,12 +21,10 @@ import androidx.camera.core.ImageCaptureException
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.util.Log
-import android.widget.ImageView
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import android.util.Base64
 import android.view.GestureDetector
-import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
@@ -39,6 +37,7 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
 import kotlin.math.abs
+import android.media.MediaPlayer
 
 
 class MainActivity : ComponentActivity() {
@@ -46,6 +45,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var resultTextView: TextView
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var fullScreenContainer: FrameLayout
+    private lateinit var mediaPlayer: MediaPlayer
     private var isPermissionGranted = false
     private var imageCapture: ImageCapture? = null
     private var capturedImage: Bitmap? = null
@@ -71,6 +71,7 @@ class MainActivity : ComponentActivity() {
         previewView = findViewById(R.id.previewView)
         var captureButton = findViewById<Button>(R.id.captureButton)
         fullScreenContainer = findViewById(R.id.full_screen_container)
+        mediaPlayer = MediaPlayer.create(this, R.raw.sound)
 
         fullScreenContainer.elevation = 10f
 
@@ -257,6 +258,7 @@ class MainActivity : ComponentActivity() {
                         val gson = Gson()
                         val responseData = gson.fromJson(responseData, ResponseData::class.java)
                         resultTextView.text = responseData.message
+                        playSound()
 
                         openSearchResult()
                     }
@@ -281,8 +283,15 @@ class MainActivity : ComponentActivity() {
         fullScreenContainer.visibility = View.GONE
     }
 
+    private fun playSound() {
+        if (!mediaPlayer.isPlaying) {
+            mediaPlayer.start()  // 소리 재생
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         cameraExecutor.shutdown() // Executor 종료
+        mediaPlayer.release()
     }
 }
