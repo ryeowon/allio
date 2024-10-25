@@ -9,12 +9,12 @@ API_KEY = os.environ.get("SERPER_API_KEY")
 default_required_info = "제조사 소비기한 영양정보 조리법 섭취방법 가격"
 
 def get_document(product_name, query):
-    search_query = query if query != "" else "정보"
+    search_query = query if query != "" else "제품 상세"
     serper_response = search(product_name + " " + search_query)
     if query != "" and serper_response.get("answerBox"):
         return serper_response["answerBox"]["snippet"]
     
-    if serper_response.get("organic") is None:
+    if len(serper_response.get("organic")) == 0:
         return ""
     
     title_and_snippets = []
